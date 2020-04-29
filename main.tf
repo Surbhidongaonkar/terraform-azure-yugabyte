@@ -211,6 +211,7 @@ resource "azurerm_virtual_machine" "YugaByte-Node" {
       "chmod +x /home/${var.ssh_user}/create_universe.sh",
       "chmod +x /home/${var.ssh_user}/start_tserver.sh",
       "chmod +x /home/${var.ssh_user}/start_master.sh",
+      "sudo yum install -y wget",
       "/home/${var.ssh_user}/install_software.sh '${var.yb_version}'",
     ]
     connection {
