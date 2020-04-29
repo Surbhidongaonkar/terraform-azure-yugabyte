@@ -9,7 +9,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    if: github.event.client_payload.prerelease == 'false'
+    #if: github.event.client_payload.prerelease == 'false'
     env:
        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
        ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
