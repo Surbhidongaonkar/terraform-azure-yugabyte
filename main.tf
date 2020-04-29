@@ -3,8 +3,8 @@ terraform {
 }
 
 provider "azurerm" {
-  version = "~>1.0"
-  #features {}
+  version = "~>2.0"
+  features {}
 }
 
 resource "azurerm_resource_group" "YugaByte-Group" {
@@ -18,7 +18,6 @@ resource "azurerm_resource_group" "YugaByte-Group" {
 
 # Create virtual network
 resource "azurerm_virtual_network" "YugaByte-Network" {
-  depends_on          = [ azurerm_resource_group.YugaByte-Group, ]
   name                = "${var.prefix}${var.cluster_name}-VPC"
   address_space       = ["10.0.0.0/16"]
   location            = var.region_name
@@ -31,7 +30,6 @@ resource "azurerm_virtual_network" "YugaByte-Network" {
 
 # Create subnet
 resource "azurerm_subnet" "YugaByte-SubNet" {
-  depends_on           = [ azurerm_virtual_network.YugaByte-Network,]
   count                = var.subnet_count
   name                 = "${var.prefix}${var.cluster_name}-Subnet-${format("%d", count.index + 1)}"
   resource_group_name  = azurerm_resource_group.YugaByte-Group.name
@@ -41,7 +39,6 @@ resource "azurerm_subnet" "YugaByte-SubNet" {
 
 # Create public IPs
 resource "azurerm_public_ip" "YugaByte_Public_IP" {
-  depends_on          = [ azurerm_resource_group.YugaByte-Group, ]
   count               = var.node_count
   name                = "${var.prefix}${var.cluster_name}-Public-IP-${format("%d", count.index)}"
   location            = var.region_name
@@ -57,7 +54,6 @@ resource "azurerm_public_ip" "YugaByte_Public_IP" {
 
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "YugaByte-SG" {
-  depends_on          = [ azurerm_resource_group.YugaByte-Group, ]
   name                = "${var.prefix}${var.cluster_name}-SG"
   location            = var.region_name
   resource_group_name = azurerm_resource_group.YugaByte-Group.name
@@ -80,7 +76,6 @@ resource "azurerm_network_security_group" "YugaByte-SG" {
 }
 
 resource "azurerm_subnet_network_security_group_association" "YugaByte-SG-Association" {
-  depends_on                = [ azurerm_network_security_group.YugaByte-SG,  azurerm_subnet.YugaByte-SubNet, ]
   count                     = var.node_count
   subnet_id                 = element(azurerm_subnet.YugaByte-SubNet.*.id, count.index)
   network_security_group_id = azurerm_network_security_group.YugaByte-SG.id
@@ -88,12 +83,10 @@ resource "azurerm_subnet_network_security_group_association" "YugaByte-SG-Associ
 
 # Create network interface
 resource "azurerm_network_interface" "YugaByte-NIC" {
-  depends_on          = [ azurerm_subnet.YugaByte-SubNet, azurerm_public_ip.YugaByte_Public_IP, ]
   count               = var.node_count
   name                = "${var.prefix}${var.cluster_name}-NIC-${format("%d", count.index + 1)}"
   location            = var.region_name
   resource_group_name = azurerm_resource_group.YugaByte-Group.name
-  network_security_group_id = azurerm_network_security_group.YugaByte-SG.id
 
   ip_configuration {
     name                          = "${var.prefix}${var.cluster_name}-NicConfiguration"
@@ -107,16 +100,15 @@ resource "azurerm_network_interface" "YugaByte-NIC" {
   }
 }
 
-#resource "azurerm_network_interface_security_group_association" "YugaByte-NIC-SG-Association" {
-#  depends_on                = [ azurerm_network_security_group.YugaByte-SG, azurerm_network_interface.YugaByte-NIC, ]
-#  count                     = var.node_count
-#  network_interface_id      = element(azurerm_network_interface.YugaByte-NIC.*.id, count.index)
-#  network_security_group_id = azurerm_network_security_group.YugaByte-SG.id
-#}
+resource "azurerm_network_interface_security_group_association" "YugaByte-NIC-SG-Association" {
+  count                     = var.node_count
+  network_interface_id      = element(azurerm_network_interface.YugaByte-NIC.*.id, count.index)
+  network_security_group_id = azurerm_network_security_group.YugaByte-SG.id
+}
 
 # Create virtual machine
 resource "azurerm_virtual_machine" "YugaByte-Node" {
-  depends_on            = [ azurerm_network_interface.YugaByte-NIC, ]
+  depends_on            = [azurerm_network_interface_security_group_association.YugaByte-NIC-SG-Association]
   count                 = var.node_count
   name                  = "${var.prefix}${var.cluster_name}-node-${format("%d", count.index + 1)}"
   location              = var.region_name
