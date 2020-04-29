@@ -9,13 +9,14 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    if: github.event_name != 'repository_dispatch' || github.event.client_payload.prerelease == 'false'       ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-       AZURE_REGION: "eastus"
+    if: github.event_name != 'repository_dispatch' || github.event.client_payload.prerelease == 'false'
+    env:
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      AZURE_REGION: "eastus"
       
-
     steps:
     - name: Tag for Repository Dispatch event
       if: github.event_name == 'repository_dispatch'
